@@ -1,0 +1,109 @@
+;; chart.aski — astrological chart domain model
+;; Compiles through: aski → Rust parser → CozoDB → codegen → rustc
+
+;; === Fundamental domains ===
+
+Element (Fire Earth Air Water)
+Modality (Cardinal Fixed Mutable)
+
+Sign (Aries Taurus Gemini Cancer Leo Virgo
+      Libra Scorpio Sagittarius Capricorn Aquarius Pisces)
+
+Planet (Sun Moon Mercury Venus Mars Jupiter Saturn Uranus Neptune Pluto)
+
+House (First Second Third Fourth Fifth Sixth
+       Seventh Eighth Ninth Tenth Eleventh Twelfth)
+
+Dignity (Ruler Exalted Detriment Fall Peregrine)
+
+Aspect (Conjunction Opposition Trine Square Sextile)
+
+;; === Struct domains ===
+
+Placement { Body Planet Position Sign Degree F64 HouseNum House }
+
+ChartData {
+  SunSign Sign
+  MoonSign Sign
+  Rising Sign
+  MidHeaven Sign
+}
+
+AspectData { First Planet Second Planet Kind Aspect Orb F64 }
+
+;; === Element and Modality methods on Sign ===
+
+Sign [
+  element(:@Self) Element (|
+    (Aries)       Fire
+    (Taurus)      Earth
+    (Gemini)      Air
+    (Cancer)      Water
+    (Leo)         Fire
+    (Virgo)       Earth
+    (Libra)       Air
+    (Scorpio)     Water
+    (Sagittarius) Fire
+    (Capricorn)   Earth
+    (Aquarius)    Air
+    (Pisces)      Water
+  |)
+
+  modality(:@Self) Modality (|
+    (Aries)       Cardinal
+    (Cancer)      Cardinal
+    (Libra)       Cardinal
+    (Capricorn)   Cardinal
+    (Taurus)      Fixed
+    (Leo)         Fixed
+    (Scorpio)     Fixed
+    (Aquarius)    Fixed
+    (Gemini)      Mutable
+    (Virgo)       Mutable
+    (Sagittarius) Mutable
+    (Pisces)      Mutable
+  |)
+]
+
+;; === Essential dignities ===
+
+Planet [
+  dignity(:@Self @Sign) Dignity (|
+    (Sun Leo)              Ruler
+    (Moon Cancer)          Ruler
+    (Mercury Gemini)       Ruler
+    (Mercury Virgo)        Ruler
+    (Venus Taurus)         Ruler
+    (Venus Libra)          Ruler
+    (Mars Aries)           Ruler
+    (Mars Scorpio)         Ruler
+    (Jupiter Sagittarius)  Ruler
+    (Jupiter Pisces)       Ruler
+    (Saturn Capricorn)     Ruler
+    (Saturn Aquarius)      Ruler
+    (Sun Aries)            Exalted
+    (Moon Taurus)          Exalted
+    (Mercury Aquarius)     Exalted
+    (Venus Pisces)         Exalted
+    (Mars Capricorn)       Exalted
+    (Jupiter Cancer)       Exalted
+    (Saturn Libra)         Exalted
+    (Sun Aquarius)         Detriment
+    (Sun Libra)            Fall
+    (Moon Capricorn)       Detriment
+    (Moon Scorpio)         Fall
+    (_ _)                  Peregrine
+  |)
+]
+
+;; === Aspect detection ===
+
+Aspect [
+  orb(:@Self) F64 (|
+    (Conjunction) 8.0
+    (Opposition)  8.0
+    (Trine)       8.0
+    (Square)      7.0
+    (Sextile)     6.0
+  |)
+]

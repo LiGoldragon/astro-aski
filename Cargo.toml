@@ -1,0 +1,10 @@
+[package]
+name = "astro-aski"
+version = "0.1.0"
+edition = "2021"
+description = "Astrological chart software — domain model in aski, computation in Rust"
+
+[dependencies]
+
+[build-dependencies]
+aski = { path = "../aski" }
