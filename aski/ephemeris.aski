@@ -1,0 +1,18 @@
+(Ephemeris signFromDegree houseFromNumber)
+[Chart (Sign Planet House)]
+
+;; === FFI methods — implemented in Rust ===
+;;
+;; Methods with ___ body are foreign: the aski compiler generates
+;; a trait (PlanetFfi, SignFfi, etc.) that Rust code must implement.
+;; The generated inherent impl delegates to the trait.
+
+;; Convert ecliptic longitude to zodiac sign
+Sign [
+  fromDegree(@F64) Sign [ ___ ]
+]
+
+;; Convert house number (1-12) to House domain
+House [
+  fromNumber(@U32) House [ ___ ]
+]

@@ -1,5 +1,5 @@
-;; chart.aski — astrological chart domain model
-;; Compiles through: aski → Rust parser → CozoDB → codegen → rustc
+(Chart Sign Planet House Element Modality Dignity Aspect
+       Placement ChartData AspectData)
 
 ;; === Fundamental domains ===
 
@@ -96,7 +96,7 @@ Planet [
   |)
 ]
 
-;; === Aspect detection ===
+;; === Aspect orbs ===
 
 Aspect [
   orb(:@Self) F64 (|
