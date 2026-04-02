@@ -33,7 +33,10 @@ AspectData { First Planet Second Planet Kind Aspect Orb F64 }
 
 ;; === Element and Modality methods on Sign ===
 
-Sign [
+classify ([element(:@Self) Element
+           modality(:@Self) Modality])
+
+classify [Sign [
   element(:@Self) Element (|
     (Aries)       Fire
     (Taurus)      Earth
@@ -63,11 +66,13 @@ Sign [
     (Sagittarius) Mutable
     (Pisces)      Mutable
   |)
-]
+]]
 
 ;; === Essential dignities ===
 
-Planet [
+evaluate ([dignity(:@Self @Sign) Dignity])
+
+evaluate [Planet [
   dignity(:@Self @Sign) Dignity (|
     (Sun Leo)              Ruler
     (Moon Cancer)          Ruler
@@ -94,11 +99,13 @@ Planet [
     (Moon Scorpio)         Fall
     (_ _)                  Peregrine
   |)
-]
+]]
 
 ;; === Aspect orbs ===
 
-Aspect [
+measure ([orb(:@Self) F64])
+
+measure [Aspect [
   orb(:@Self) F64 (|
     (Conjunction) 8.0
     (Opposition)  8.0
@@ -106,4 +113,4 @@ Aspect [
     (Square)      7.0
     (Sextile)     6.0
   |)
-]
+]]

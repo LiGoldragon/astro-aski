@@ -4,15 +4,18 @@
 ;; === FFI methods — implemented in Rust ===
 ;;
 ;; Methods with ___ body are foreign: the aski compiler generates
-;; a trait (PlanetFfi, SignFfi, etc.) that Rust code must implement.
-;; The generated inherent impl delegates to the trait.
+;; a trait that Rust code must implement.
 
 ;; Convert ecliptic longitude to zodiac sign
-Sign [
+signFromDegree ([fromDegree(@F64) Sign])
+
+signFromDegree [Sign [
   fromDegree(@F64) Sign [ ___ ]
-]
+]]
 
 ;; Convert house number (1-12) to House domain
-House [
+houseFromNumber ([fromNumber(@U32) House])
+
+houseFromNumber [House [
   fromNumber(@U32) House [ ___ ]
-]
+]]
