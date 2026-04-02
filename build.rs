@@ -1,7 +1,7 @@
 use std::io::Write;
 
-use aski::codegen::CodegenConfig;
-use aski::compiler::compile_directory;
+use aski_rs::codegen::CodegenConfig;
+use aski_rs::compiler::compile_directory;
 
 fn main() {
     println!("cargo:rerun-if-changed=aski/chart.aski");

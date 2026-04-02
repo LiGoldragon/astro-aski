@@ -7,4 +7,4 @@ description = "Astrological chart software — domain model in aski, computation
 [dependencies]
 
 [build-dependencies]
-aski = { path = "../aski" }
+aski-rs = { path = "../aski-rs" }
