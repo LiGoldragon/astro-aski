@@ -30,28 +30,6 @@ fn sign_from_degree(longitude: f64) -> Sign {
     }
 }
 
-/// Detect aspect between two planetary longitudes.
-fn detect_aspect(lon1: f64, lon2: f64) -> Option<(Aspect, f64)> {
-    let mut diff = (lon1 - lon2).abs();
-    if diff > 180.0 { diff = 360.0 - diff; }
-
-    let aspects = [
-        (Aspect::Conjunction, 0.0),
-        (Aspect::Sextile, 60.0),
-        (Aspect::Square, 90.0),
-        (Aspect::Trine, 120.0),
-        (Aspect::Opposition, 180.0),
-    ];
-
-    for (aspect, exact) in &aspects {
-        let orb = (diff - exact).abs();
-        if orb <= aspect.orb() {
-            return Some((*aspect, orb));
-        }
-    }
-    None
-}
-
 /// Compute planet positions using Swiss Ephemeris
 fn compute_chart(year: i32, month: i32, day: i32, hour: f64) -> Vec<(Planet, f64)> {
     use swiss_eph::safe;
@@ -94,43 +72,6 @@ fn window_conf() -> macroquad::conf::Conf {
         },
         ..Default::default()
     }
-}
-
-/// Compute and print chart data (works without display)
-fn print_chart() -> Vec<(Planet, f64)> {
-    let positions = compute_chart(2026, 4, 3, 12.0);
-
-    println!("=== Natal Chart — 2026-04-03 12:00 UTC ===\n");
-    for (planet, longitude) in &positions {
-        let sign = sign_from_degree(*longitude);
-        let degree = longitude % 30.0;
-        let dignity = planet.dignity(&sign);
-        let element = sign.element();
-        println!("  {:?} at {:.1}° {:?} ({:?}) — {:?}", planet, degree, sign, element, dignity);
-    }
-
-    println!("\n=== Aspects ===\n");
-    for i in 0..positions.len() {
-        for j in (i + 1)..positions.len() {
-            if let Some((aspect, orb)) = detect_aspect(positions[i].1, positions[j].1) {
-                println!("  {:?} {:?} {:?} (orb: {:.1}°)", positions[i].0, aspect, positions[j].0, orb);
-            }
-        }
-    }
-
-    positions
-}
-
-/// Text-only mode: compute and display chart data without GUI
-fn text_mode() {
-    let positions = print_chart();
-    let chart_data = ChartData {
-        sun_sign: sign_from_degree(positions[0].1),
-        moon_sign: sign_from_degree(positions[1].1),
-        rising: sign_from_degree(0.0), // placeholder
-        mid_heaven: sign_from_degree(positions[0].1),
-    };
-    println!("\n  Sun:  {:?}  Moon:  {:?}", chart_data.sun_sign, chart_data.moon_sign);
 }
 
 #[macroquad::main(window_conf)]
