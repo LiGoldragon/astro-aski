@@ -6,8 +6,11 @@ mod chart {
 
 use chart::*;
 
+use ply_aski::chart::{ChartConfig, Placement, draw_chart};
+use ply_aski::macroquad;
+use ply_aski::prelude::*;
+
 /// Convert ecliptic longitude (0-360) to zodiac sign.
-/// This is the FFI bridge — aski declares the interface, Rust implements it.
 fn sign_from_degree(longitude: f64) -> Sign {
     let sign_index = (longitude / 30.0) as usize % 12;
     match sign_index {
@@ -27,31 +30,10 @@ fn sign_from_degree(longitude: f64) -> Sign {
     }
 }
 
-/// Convert house number (1-12) to House domain.
-fn house_from_number(n: u32) -> House {
-    match n {
-        1 => House::First,
-        2 => House::Second,
-        3 => House::Third,
-        4 => House::Fourth,
-        5 => House::Fifth,
-        6 => House::Sixth,
-        7 => House::Seventh,
-        8 => House::Eighth,
-        9 => House::Ninth,
-        10 => House::Tenth,
-        11 => House::Eleventh,
-        12 => House::Twelfth,
-        _ => House::First,
-    }
-}
-
 /// Detect aspect between two planetary longitudes.
 fn detect_aspect(lon1: f64, lon2: f64) -> Option<(Aspect, f64)> {
     let mut diff = (lon1 - lon2).abs();
-    if diff > 180.0 {
-        diff = 360.0 - diff;
-    }
+    if diff > 180.0 { diff = 360.0 - diff; }
 
     let aspects = [
         (Aspect::Conjunction, 0.0),
@@ -70,61 +52,127 @@ fn detect_aspect(lon1: f64, lon2: f64) -> Option<(Aspect, f64)> {
     None
 }
 
-fn main() {
-    // Example: a birth chart with known planetary positions (longitudes)
-    // These would normally come from swiss-eph; hardcoded for testing
-    let planet_longitudes: &[(Planet, f64)] = &[
-        (Planet::Sun,     120.5),  // ~0° Leo
-        (Planet::Moon,    95.3),   // ~5° Cancer
-        (Planet::Mercury, 135.7),  // ~15° Leo
-        (Planet::Venus,   108.2),  // ~18° Cancer
-        (Planet::Mars,    25.8),   // ~25° Aries
-        (Planet::Jupiter, 268.4),  // ~28° Sagittarius
-        (Planet::Saturn,  305.1),  // ~5° Aquarius
+/// Compute planet positions using Swiss Ephemeris
+fn compute_chart(year: i32, month: i32, day: i32, hour: f64) -> Vec<(Planet, f64)> {
+    use swiss_eph::safe;
+
+    let jd = safe::julday(year, month, day, hour);
+    let flags = safe::CalcFlags::new().with_speed();
+
+    let planets = [
+        (Planet::Sun, safe::Planet::Sun),
+        (Planet::Moon, safe::Planet::Moon),
+        (Planet::Mercury, safe::Planet::Mercury),
+        (Planet::Venus, safe::Planet::Venus),
+        (Planet::Mars, safe::Planet::Mars),
+        (Planet::Jupiter, safe::Planet::Jupiter),
+        (Planet::Saturn, safe::Planet::Saturn),
     ];
 
-    println!("=== Natal Chart ===\n");
+    let mut positions = Vec::new();
+    for (aski_planet, eph_planet) in &planets {
+        match safe::calc(jd, *eph_planet, flags) {
+            Ok(pos) => {
+                positions.push((*aski_planet, pos.longitude));
+            }
+            Err(e) => {
+                eprintln!("Failed to compute {:?}: {:?}", aski_planet, e);
+            }
+        }
+    }
+    positions
+}
 
-    // Compute sign placements using the FFI bridge
-    for (planet, longitude) in planet_longitudes {
+fn window_conf() -> macroquad::conf::Conf {
+    macroquad::conf::Conf {
+        miniquad_conf: miniquad::conf::Conf {
+            window_title: "astro-aski — Natal Chart".to_owned(),
+            window_width: 800,
+            window_height: 750,
+            high_dpi: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
+/// Compute and print chart data (works without display)
+fn print_chart() -> Vec<(Planet, f64)> {
+    let positions = compute_chart(2026, 4, 3, 12.0);
+
+    println!("=== Natal Chart — 2026-04-03 12:00 UTC ===\n");
+    for (planet, longitude) in &positions {
         let sign = sign_from_degree(*longitude);
-        let degree_in_sign = longitude % 30.0;
+        let degree = longitude % 30.0;
         let dignity = planet.dignity(&sign);
         let element = sign.element();
-        let modality = sign.modality();
-
-        println!(
-            "  {:?} at {:.1}° {:?} ({:?}, {:?}) — {:?}",
-            planet, degree_in_sign, sign, element, modality, dignity
-        );
+        println!("  {:?} at {:.1}° {:?} ({:?}) — {:?}", planet, degree, sign, element, dignity);
     }
 
-    // Detect aspects between planets
     println!("\n=== Aspects ===\n");
-    for i in 0..planet_longitudes.len() {
-        for j in (i + 1)..planet_longitudes.len() {
-            let (p1, lon1) = &planet_longitudes[i];
-            let (p2, lon2) = &planet_longitudes[j];
-            if let Some((aspect, orb)) = detect_aspect(*lon1, *lon2) {
-                println!(
-                    "  {:?} {:?} {:?} (orb: {:.1}°)",
-                    p1, aspect, p2, orb
-                );
+    for i in 0..positions.len() {
+        for j in (i + 1)..positions.len() {
+            if let Some((aspect, orb)) = detect_aspect(positions[i].1, positions[j].1) {
+                println!("  {:?} {:?} {:?} (orb: {:.1}°)", positions[i].0, aspect, positions[j].0, orb);
             }
         }
     }
 
-    // Summary
-    let chart = ChartData {
-        sun_sign: sign_from_degree(120.5),
-        moon_sign: sign_from_degree(95.3),
-        rising: sign_from_degree(210.0), // ~0° Scorpio (example)
-        mid_heaven: sign_from_degree(120.0), // ~0° Leo (example)
+    positions
+}
+
+/// Text-only mode: compute and display chart data without GUI
+fn text_mode() {
+    let positions = print_chart();
+    let chart_data = ChartData {
+        sun_sign: sign_from_degree(positions[0].1),
+        moon_sign: sign_from_degree(positions[1].1),
+        rising: sign_from_degree(0.0), // placeholder
+        mid_heaven: sign_from_degree(positions[0].1),
+    };
+    println!("\n  Sun:  {:?}  Moon:  {:?}", chart_data.sun_sign, chart_data.moon_sign);
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
+    let positions = compute_chart(2026, 4, 3, 12.0);
+
+    // Build placements for the visual chart
+    let placements: Vec<Placement> = positions.iter().enumerate().map(|(i, (_, lon))| {
+        Placement { planet_index: i, longitude: *lon as f32 }
+    }).collect();
+
+    let config = ChartConfig {
+        center_x: 400.0,
+        center_y: 375.0,
+        outer_radius: 280.0,
+        inner_radius: 220.0,
+        planet_radius: 180.0,
+        ascendant: 0.0, // TODO: compute from birth location
     };
 
-    println!("\n=== Chart Summary ===\n");
-    println!("  Sun:        {:?}", chart.sun_sign);
-    println!("  Moon:       {:?}", chart.moon_sign);
-    println!("  Rising:     {:?}", chart.rising);
-    println!("  MidHeaven:  {:?}", chart.mid_heaven);
+    // Render loop
+    loop {
+        clear_background(macroquad::color::Color::new(0.05, 0.05, 0.1, 1.0));
+
+        // Title
+        draw_text("astro-aski — 2026-04-03 12:00 UTC", 220.0, 30.0, 24.0,
+            macroquad::color::Color::new(0.7, 0.7, 0.8, 1.0));
+
+        // Draw the chart
+        draw_chart(&config, &placements);
+
+        // Planet legend at bottom
+        let legend_y = 710.0;
+        for (i, (planet, lon)) in positions.iter().enumerate() {
+            let sign = sign_from_degree(*lon);
+            let deg = lon % 30.0;
+            let text = format!("{:?}: {:.0}° {:?}", planet, deg, sign);
+            let x = 30.0 + (i as f32) * 110.0;
+            draw_text(&text, x, legend_y, 14.0,
+                macroquad::color::Color::new(0.6, 0.6, 0.7, 1.0));
+        }
+
+        next_frame().await;
+    }
 }

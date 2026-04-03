@@ -5,6 +5,8 @@ edition = "2021"
 description = "Astrological chart software — domain model in aski, computation in Rust"
 
 [dependencies]
+ply-aski = { version = "0.1.0", path = "../ply-aski" }
+swiss-eph = "0.2.1"
 
 [build-dependencies]
 aski-rs = { path = "../aski-rs" }
