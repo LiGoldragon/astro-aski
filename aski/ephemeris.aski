@@ -1,21 +1,22 @@
 (Ephemeris signFromDegree houseFromNumber)
 [Chart (Sign Planet House)]
 
-;; === FFI methods — implemented in Rust ===
-;;
-;; Methods with ___ body are foreign: the aski compiler generates
-;; a trait that Rust code must implement.
-
 ;; Convert ecliptic longitude to zodiac sign
-signFromDegree ([fromDegree(@F64) Sign])
+;; Pure aski — uses kernel primitives (truncate, fromOrdinal)
+signFromDegree ([fromDegree(@Longitude F64) Sign])
 
 signFromDegree [Sign [
-  fromDegree(@F64) Sign [ ___ ]
+  fromDegree(@Longitude F64) Sign [
+    @Index U32.new([@Longitude / 30.0].truncate)
+    ^Sign.fromOrdinal(@Index)
+  ]
 ]]
 
 ;; Convert house number (1-12) to House domain
-houseFromNumber ([fromNumber(@U32) House])
+houseFromNumber ([fromNumber(@Number U32) House])
 
 houseFromNumber [House [
-  fromNumber(@U32) House [ ___ ]
+  fromNumber(@Number U32) House [
+    ^House.fromOrdinal([@Number - 1])
+  ]
 ]]
