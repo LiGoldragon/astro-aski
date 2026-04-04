@@ -1,0 +1,15 @@
+(Render spawnCamera fillRingSector strokeLine strokeCircle labelText appRun fCos fSin)
+
+;; Bevy rendering primitives — command buffer pattern.
+;; Each call buffers a draw command; appRun replays as bevy entities.
+
+{| render
+  spawnCamera() I32 spawn_camera
+  fillRingSector(@OuterR F64 @InnerR F64 @StartAngle F64 @SweepAngle F64 @R F64 @G F64 @B F64 @A F64 @Z F64) I32 fill_ring_sector
+  strokeLine(@X1 F64 @Y1 F64 @X2 F64 @Y2 F64 @R F64 @G F64 @B F64 @A F64 @Width F64 @Z F64) I32 stroke_line
+  strokeCircle(@Radius F64 @R F64 @G F64 @B F64 @A F64 @Width F64 @Z F64) I32 stroke_circle
+  labelText(@Text String @Size F64 @R F64 @G F64 @B F64 @A F64 @X F64 @Y F64 @Z F64) I32 label
+  appRun(@Title String @Width I32 @Height I32 @BgR F64 @BgG F64 @BgB F64) I32 app_run
+  fCos(@Angle F64) F64 f64_cos
+  fSin(@Angle F64) F64 f64_sin
+|}

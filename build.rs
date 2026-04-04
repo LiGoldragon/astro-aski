@@ -4,12 +4,14 @@ use aski_rs::codegen::CodegenConfig;
 use aski_rs::compiler::compile_directory;
 
 fn main() {
-    println!("cargo:rerun-if-changed=aski/chart.aski");
-    println!("cargo:rerun-if-changed=aski/ephemeris.aski");
+    println!("cargo:rerun-if-changed=source/chart.aski");
+    println!("cargo:rerun-if-changed=source/ephemeris.aski");
+    println!("cargo:rerun-if-changed=source/render.aski");
+    println!("cargo:rerun-if-changed=source/main.aski");
 
     let config = CodegenConfig { rkyv: false };
     let rust_code = compile_directory(
-        &["aski/chart.aski", "aski/ephemeris.aski"],
+        &["source/chart.aski", "source/ephemeris.aski", "source/render.aski", "source/main.aski"],
         &config,
     )
     .expect("failed to compile aski files");

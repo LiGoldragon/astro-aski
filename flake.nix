@@ -19,12 +19,28 @@
 
       src = craneLib.cleanCargoSource ./.;
 
+      runtimeDeps = with pkgs; [
+        vulkan-loader
+        wayland
+        libxkbcommon
+        libx11
+        libxcursor
+        libxi
+        libxrandr
+        udev
+        alsa-lib
+      ];
+
       commonArgs = {
         inherit src;
         pname = "astro-aski";
         version = "0.1.0";
-        nativeBuildInputs = with pkgs; [ pkg-config ];
-        buildInputs = with pkgs; [ sqlite ];
+        nativeBuildInputs = with pkgs; [ pkg-config cmake ];
+        buildInputs = with pkgs; [
+          sqlite
+          alsa-lib
+          udev
+        ] ++ runtimeDeps;
       };
 
       cargoArtifacts = craneLib.buildDepsOnly commonArgs;
@@ -40,8 +56,13 @@
         packages = with pkgs; [
           rust-analyzer
           pkg-config
+          cmake
           sqlite
-        ];
+          alsa-lib
+          udev
+        ] ++ runtimeDeps;
+
+        LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeDeps;
       };
     };
 }

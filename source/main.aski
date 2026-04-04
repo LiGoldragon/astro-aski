@@ -1,0 +1,196 @@
+(Main)
+[Chart (Sign Planet Element)
+ Ephemeris (julianDay calcLongitude signFromDegree)
+ Render (spawnCamera fillRingSector strokeLine strokeCircle labelText appRun fCos fSin)]
+
+;; Layout constants
+!Pi F64 {3.14159265358979}
+!DegToRad F64 {0.01745329251994}
+!OuterRadius F64 {280.0}
+!InnerRadius F64 {220.0}
+!GlyphRadius F64 {250.0}
+!PlanetRadius F64 {180.0}
+!SweepMagnitude F64 {0.5236}
+
+;; Element rendering colors
+Color { R F64 G F64 B F64 A F64 }
+
+colorize ([elementColor(:@Self) Color
+           dimElementColor(:@Self) Color])
+
+colorize [Element [
+  elementColor(:@Self) Color (|
+    (Fire)  Color(R(0.9) G(0.3) B(0.2) A(1.0))
+    (Earth) Color(R(0.4) G(0.7) B(0.3) A(1.0))
+    (Air)   Color(R(0.3) G(0.6) B(0.9) A(1.0))
+    (Water) Color(R(0.2) G(0.4) B(0.8) A(1.0))
+  |)
+  dimElementColor(:@Self) Color (|
+    (Fire)  Color(R(0.27) G(0.09) B(0.06) A(0.6))
+    (Earth) Color(R(0.12) G(0.21) B(0.09) A(0.6))
+    (Air)   Color(R(0.09) G(0.18) B(0.27) A(0.6))
+    (Water) Color(R(0.06) G(0.12) B(0.24) A(0.6))
+  |)
+]]
+
+;; Sign and planet glyphs (boundary only — displayed in UI)
+glyphize ([glyph(:@Self) String])
+
+glyphize [Sign [
+  glyph(:@Self) String (|
+    (Aries) "♈"  (Taurus) "♉"  (Gemini) "♊"  (Cancer) "♋"
+    (Leo) "♌"  (Virgo) "♍"  (Libra) "♎"  (Scorpio) "♏"
+    (Sagittarius) "♐"  (Capricorn) "♑"  (Aquarius) "♒"  (Pisces) "♓"
+  |)
+]]
+
+glyphize [Planet [
+  glyph(:@Self) String (|
+    (Sun) "☉"  (Moon) "☽"  (Mercury) "☿"  (Venus) "♀"
+    (Mars) "♂"  (Jupiter) "♃"  (Saturn) "♄"
+  |)
+]]
+
+;; Polar coordinate helpers
+PolarPoint { X F64 Y F64 }
+
+polarize ([fromAngle(@Radius F64 @Angle F64) PolarPoint])
+
+polarize [PolarPoint [
+  fromAngle(@Radius F64 @Angle F64) PolarPoint [
+    ^PolarPoint/new(X([@Radius * fCos(@Angle)]) Y([@Radius * fSin(@Angle)]))
+  ]
+]]
+
+;; Ecliptic longitude to screen angle (ascendant at left, counter-clockwise)
+screenAngle ([fromLongitude(@Longitude F64) F64])
+
+screenAngle [F64 [
+  fromLongitude(@Longitude F64) F64 [
+    ^F64/new([!Pi - @Longitude * !DegToRad])
+  ]
+]]
+
+;; === Rendering traits ===
+;; Each sign knows how to render itself given its ordinal index
+
+SignRenderer { Ordinal F64 }
+
+renderSign ([drawSegment(:@Self) I32
+             drawBoundary(:@Self) I32
+             drawGlyph(:@Self) I32])
+
+renderSign [SignRenderer [
+  drawSegment(:@Self) I32 [
+    @SignAngle F64/new(F64/fromLongitude([@Self.Ordinal * 30.0]))
+    @NegativeSweep F64/new([0.0 - !SweepMagnitude])
+    @CurrentSign Sign/fromOrdinal(U32/new(@Self.Ordinal.truncate))
+    @SignElement Element/new(@CurrentSign.element)
+    @DimColor Color/new(@SignElement.dimElementColor)
+    ^I32/new(fillRingSector(!OuterRadius !InnerRadius @SignAngle @NegativeSweep @DimColor.R @DimColor.G @DimColor.B @DimColor.A 1.0))
+  ]
+  drawBoundary(:@Self) I32 [
+    @BoundaryAngle F64/new(F64/fromLongitude([@Self.Ordinal * 30.0]))
+    @OuterPoint PolarPoint/fromAngle(!OuterRadius @BoundaryAngle)
+    @InnerPoint PolarPoint/fromAngle(!InnerRadius @BoundaryAngle)
+    ^I32/new(strokeLine(@OuterPoint.X @OuterPoint.Y @InnerPoint.X @InnerPoint.Y 0.5 0.5 0.5 0.8 1.0 1.1))
+  ]
+  drawGlyph(:@Self) I32 [
+    @GlyphAngle F64/new(F64/fromLongitude([[@Self.Ordinal * 30.0] + 15.0]))
+    @GlyphPoint PolarPoint/fromAngle(!GlyphRadius @GlyphAngle)
+    @CurrentSign Sign/fromOrdinal(U32/new(@Self.Ordinal.truncate))
+    @SignElement Element/new(@CurrentSign.element)
+    @BrightColor Color/new(@SignElement.elementColor)
+    @SignGlyph String/new(@CurrentSign.glyph)
+    ^I32/new(labelText(@SignGlyph 24.0 @BrightColor.R @BrightColor.G @BrightColor.B @BrightColor.A @GlyphPoint.X @GlyphPoint.Y 1.2))
+  ]
+]]
+
+;; Planet renderer
+PlanetRenderer { Index F64 JulianDay F64 }
+
+renderPlanet ([draw(:@Self) I32])
+
+renderPlanet [PlanetRenderer [
+  draw(:@Self) I32 [
+    @PlanetIndex I32/new(@Self.Index.truncate)
+    @Longitude F64/new(calcLongitude(@Self.JulianDay @PlanetIndex))
+    @Angle F64/new(F64/fromLongitude(@Longitude))
+    @Position PolarPoint/fromAngle(!PlanetRadius @Angle)
+    @CurrentSign Sign/fromDegree(@Longitude)
+    @SignElement Element/new(@CurrentSign.element)
+    @PlanetColor Color/new(@SignElement.elementColor)
+    @CurrentPlanet Planet/fromOrdinal(U32/new(@Self.Index.truncate))
+    @PlanetGlyph String/new(@CurrentPlanet.glyph)
+    @GlyphResult I32/new(labelText(@PlanetGlyph 22.0 @PlanetColor.R @PlanetColor.G @PlanetColor.B @PlanetColor.A @Position.X @Position.Y 2.0))
+    ;; Tick mark
+    @TickInner PolarPoint/fromAngle([!InnerRadius - 5.0] @Angle)
+    @TickOuter PolarPoint/fromAngle([!PlanetRadius + 12.0] @Angle)
+    ^I32/new(strokeLine(@TickInner.X @TickInner.Y @TickOuter.X @TickOuter.Y 0.4 0.4 0.4 0.5 0.5 1.5))
+  ]
+]]
+
+;; === Entry point ===
+
+Main [
+  @CameraResult I32/new(spawnCamera())
+
+  ;; Zodiac ring — 12 signs
+  ;; TODO: replace with iteration when tail recursion in Main is supported
+  @AriesSegment I32/new(SignRenderer/new(Ordinal(0.0)).drawSegment)
+  @AriesBoundary I32/new(SignRenderer/new(Ordinal(0.0)).drawBoundary)
+  @AriesGlyph I32/new(SignRenderer/new(Ordinal(0.0)).drawGlyph)
+  @TaurusSegment I32/new(SignRenderer/new(Ordinal(1.0)).drawSegment)
+  @TaurusBoundary I32/new(SignRenderer/new(Ordinal(1.0)).drawBoundary)
+  @TaurusGlyph I32/new(SignRenderer/new(Ordinal(1.0)).drawGlyph)
+  @GeminiSegment I32/new(SignRenderer/new(Ordinal(2.0)).drawSegment)
+  @GeminiBoundary I32/new(SignRenderer/new(Ordinal(2.0)).drawBoundary)
+  @GeminiGlyph I32/new(SignRenderer/new(Ordinal(2.0)).drawGlyph)
+  @CancerSegment I32/new(SignRenderer/new(Ordinal(3.0)).drawSegment)
+  @CancerBoundary I32/new(SignRenderer/new(Ordinal(3.0)).drawBoundary)
+  @CancerGlyph I32/new(SignRenderer/new(Ordinal(3.0)).drawGlyph)
+  @LeoSegment I32/new(SignRenderer/new(Ordinal(4.0)).drawSegment)
+  @LeoBoundary I32/new(SignRenderer/new(Ordinal(4.0)).drawBoundary)
+  @LeoGlyph I32/new(SignRenderer/new(Ordinal(4.0)).drawGlyph)
+  @VirgoSegment I32/new(SignRenderer/new(Ordinal(5.0)).drawSegment)
+  @VirgoBoundary I32/new(SignRenderer/new(Ordinal(5.0)).drawBoundary)
+  @VirgoGlyph I32/new(SignRenderer/new(Ordinal(5.0)).drawGlyph)
+  @LibraSegment I32/new(SignRenderer/new(Ordinal(6.0)).drawSegment)
+  @LibraBoundary I32/new(SignRenderer/new(Ordinal(6.0)).drawBoundary)
+  @LibraGlyph I32/new(SignRenderer/new(Ordinal(6.0)).drawGlyph)
+  @ScorpioSegment I32/new(SignRenderer/new(Ordinal(7.0)).drawSegment)
+  @ScorpioBoundary I32/new(SignRenderer/new(Ordinal(7.0)).drawBoundary)
+  @ScorpioGlyph I32/new(SignRenderer/new(Ordinal(7.0)).drawGlyph)
+  @SagittariusSegment I32/new(SignRenderer/new(Ordinal(8.0)).drawSegment)
+  @SagittariusBoundary I32/new(SignRenderer/new(Ordinal(8.0)).drawBoundary)
+  @SagittariusGlyph I32/new(SignRenderer/new(Ordinal(8.0)).drawGlyph)
+  @CapricornSegment I32/new(SignRenderer/new(Ordinal(9.0)).drawSegment)
+  @CapricornBoundary I32/new(SignRenderer/new(Ordinal(9.0)).drawBoundary)
+  @CapricornGlyph I32/new(SignRenderer/new(Ordinal(9.0)).drawGlyph)
+  @AquariusSegment I32/new(SignRenderer/new(Ordinal(10.0)).drawSegment)
+  @AquariusBoundary I32/new(SignRenderer/new(Ordinal(10.0)).drawBoundary)
+  @AquariusGlyph I32/new(SignRenderer/new(Ordinal(10.0)).drawGlyph)
+  @PiscesSegment I32/new(SignRenderer/new(Ordinal(11.0)).drawSegment)
+  @PiscesBoundary I32/new(SignRenderer/new(Ordinal(11.0)).drawBoundary)
+  @PiscesGlyph I32/new(SignRenderer/new(Ordinal(11.0)).drawGlyph)
+
+  ;; Circle outlines
+  @OuterCircle I32/new(strokeCircle(!OuterRadius 0.6 0.6 0.6 1.0 2.0 1.3))
+  @InnerCircle I32/new(strokeCircle(!InnerRadius 0.4 0.4 0.4 1.0 1.5 1.3))
+
+  ;; Planets
+  @JulianDay F64/new(julianDay(2026 4 3 12.0))
+  @SunDraw I32/new(PlanetRenderer/new(Index(0.0) JulianDay(@JulianDay)).draw)
+  @MoonDraw I32/new(PlanetRenderer/new(Index(1.0) JulianDay(@JulianDay)).draw)
+  @MercuryDraw I32/new(PlanetRenderer/new(Index(2.0) JulianDay(@JulianDay)).draw)
+  @VenusDraw I32/new(PlanetRenderer/new(Index(3.0) JulianDay(@JulianDay)).draw)
+  @MarsDraw I32/new(PlanetRenderer/new(Index(4.0) JulianDay(@JulianDay)).draw)
+  @JupiterDraw I32/new(PlanetRenderer/new(Index(5.0) JulianDay(@JulianDay)).draw)
+  @SaturnDraw I32/new(PlanetRenderer/new(Index(6.0) JulianDay(@JulianDay)).draw)
+
+  ;; Title
+  @TitleLabel I32/new(labelText("astro-aski — 2026-04-03 12:00 UTC" 24.0 0.7 0.7 0.8 1.0 0.0 340.0 3.0))
+
+  ;; Start bevy event loop
+  @ApplicationRun I32/new(appRun("astro-aski — Natal Chart" 800 750 0.05 0.05 0.1))
+]

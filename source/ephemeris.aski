@@ -1,5 +1,11 @@
-(Ephemeris signFromDegree houseFromNumber)
+(Ephemeris signFromDegree houseFromNumber julianDay calcLongitude)
 [Chart (Sign Planet House)]
+
+;; FFI — thin adapter over swiss_eph
+{| ffi
+  julianDay(@Year I32 @Month I32 @Day I32 @Hour F64) F64 julday
+  calcLongitude(@JulianDay F64 @PlanetIndex I32) F64 calc_longitude
+|}
 
 ;; Convert ecliptic longitude to zodiac sign
 ;; Pure aski — uses kernel primitives (truncate, fromOrdinal)
@@ -7,8 +13,8 @@ signFromDegree ([fromDegree(@Longitude F64) Sign])
 
 signFromDegree [Sign [
   fromDegree(@Longitude F64) Sign [
-    @Index U32.new([@Longitude / 30.0].truncate)
-    ^Sign.fromOrdinal(@Index)
+    @Index U32/new([@Longitude / 30.0].truncate)
+    ^Sign/fromOrdinal(@Index)
   ]
 ]]
 
@@ -17,6 +23,6 @@ houseFromNumber ([fromNumber(@Number U32) House])
 
 houseFromNumber [House [
   fromNumber(@Number U32) House [
-    ^House.fromOrdinal([@Number - 1])
+    ^House/fromOrdinal([@Number - 1])
   ]
 ]]
